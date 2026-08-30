@@ -49,50 +49,53 @@ function PaneView({
           <div
             key={tab.id}
             testId={`tab-${tab.id}`}
-            tabIndex={0}
-            onClick={() => dispatch({ action: "tab.activate", paneId: pane.id, tabId: tab.id })}
-            onKeyDown={(event) => {
-              if (event.key === "enter" || event.key === "space") {
-                dispatch({ action: "tab.activate", paneId: pane.id, tabId: tab.id })
-                return
-              }
-              if (event.key !== "left" && event.key !== "right") return
-              const offset = event.key === "left" ? -1 : 1
-              const nextIndex = Math.max(0, Math.min(pane.tabs.length - 1, index + offset))
-              if (event.modifiers?.shift) {
-                dispatch({ action: "tab.move", tabId: tab.id, fromPaneId: pane.id, toPaneId: pane.id, index: nextIndex })
-              } else {
-                const next = pane.tabs[nextIndex]
-                if (next) dispatch({ action: "tab.activate", paneId: pane.id, tabId: next.id })
-              }
-            }}
             style={{
               height: 34,
               minWidth: 0,
               maxWidth: 220,
-              paddingLeft: 11,
               paddingRight: 7,
               display: "flex",
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
+              gap: 4,
               borderTopLeftRadius: 7,
               borderTopRightRadius: 7,
-              cursor: "pointer",
               backgroundColor: active?.id === tab.id ? C.canvas : C.sidebar,
               borderBottomWidth: active?.id === tab.id ? 2 : 0,
               borderColor: C.accent,
               hover: active?.id === tab.id ? undefined : { backgroundColor: C.overlay },
             }}
           >
-            <text style={{ minWidth: 0, flexGrow: 1, color: active?.id === tab.id ? C.text : C.tertiary, fontFamily: FONT, fontSize: 12 }}>
-              {tab.title}
-            </text>
+            <div
+              testId={`tab-button-${tab.id}`}
+              tabIndex={0}
+              onClick={() => dispatch({ action: "tab.activate", paneId: pane.id, tabId: tab.id })}
+              onKeyDown={(event) => {
+                if (event.key === "enter" || event.key === "space") {
+                  dispatch({ action: "tab.activate", paneId: pane.id, tabId: tab.id })
+                  return
+                }
+                if (event.key !== "left" && event.key !== "right") return
+                const offset = event.key === "left" ? -1 : 1
+                const nextIndex = Math.max(0, Math.min(pane.tabs.length - 1, index + offset))
+                if (event.modifiers?.shift) {
+                  dispatch({ action: "tab.move", tabId: tab.id, fromPaneId: pane.id, toPaneId: pane.id, index: nextIndex })
+                } else {
+                  const next = pane.tabs[nextIndex]
+                  if (next) dispatch({ action: "tab.activate", paneId: pane.id, tabId: next.id })
+                }
+              }}
+              style={{ height: "100%", minWidth: 0, flexGrow: 1, paddingLeft: 11, display: "flex", alignItems: "center", cursor: "pointer" }}
+            >
+              <text style={{ minWidth: 0, color: active?.id === tab.id ? C.text : C.tertiary, fontFamily: FONT, fontSize: 12 }}>
+                {tab.title}
+              </text>
+            </div>
             {pane.tabs.length > 1 ? (
               <div
                 testId={`close-tab-${tab.id}`}
                 onClick={() => dispatch({ action: "tab.close", paneId: pane.id, tabId: tab.id })}
-                style={{ width: 18, height: 18, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", hover: { backgroundColor: C.overlay } }}
+                style={{ width: 18, height: 18, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", hover: { backgroundColor: C.overlay } }}
               >
                 <text style={{ color: C.tertiary, fontFamily: FONT, fontSize: 11 }}>×</text>
               </div>
