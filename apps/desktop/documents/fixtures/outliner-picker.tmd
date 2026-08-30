@@ -1,0 +1,19 @@
+# Outliner picker
+
+Choose a session, then open it through a named host capability.
+
+::select{
+  source="$sessions"
+  label="title"
+  value="id"
+  action="session.open"
+}
+
+:::box{title="Selected"}
+**{{ selected.title }}**
+
+{{ selected.summary }}
+:::
+
+::key{key="r" action="sessions.refresh"}
+::key{key="escape" action="document.close"}

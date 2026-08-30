@@ -1,0 +1,22 @@
+{
+  "name": "gpui-pie-liner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot apps/desktop/app.tsx",
+    "build": "bun build --compile apps/desktop/app.tsx --outfile dist/gpui-pie-liner",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gpuix/react": "^0.6.0",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "@types/react": "^19.2.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.18"
+  }
+}
