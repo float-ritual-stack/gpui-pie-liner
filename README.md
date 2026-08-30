@@ -32,6 +32,19 @@ bun run dev # succeeds automatically when exactly one local service socket exist
 
 When multiple sockets exist, set one of the explicit variables rather than allowing the app to guess.
 
+## Agent and CLI workspace control
+
+Tabs, panes, splits, movement, activation, closing, and resizing use one serializable command model shared by the UI and agents:
+
+```sh
+bun run pie layout get
+bun run pie tab create --pane main --kind empty --title "Investigation"
+bun run pie pane split --pane main --direction down --id research --kind empty --title "Research"
+bun run pie pane resize --split split-root --ratio 0.4
+```
+
+Commands update the live app over its local socket, or update persisted layout directly while the app is closed. See [`docs/AGENT_CONTROL.md`](docs/AGENT_CONTROL.md).
+
 ## Verify
 
 ```sh

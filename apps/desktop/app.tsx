@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
 import { render } from "@gpuix/react"
 import pickerSource from "./documents/fixtures/outliner-picker.tmd" with { type: "text" }
 import { DocumentSurface } from "./documents/render-document"
@@ -7,6 +7,9 @@ import { C, FONT } from "./theme"
 import { useOutlinerWorkspace } from "./model/use-outliner-workspace"
 import { navigateTree, visibleTreeItems } from "./model/tree-navigation"
 import type { VisibleBlock } from "../../packages/outliner"
+import type { WorkspacePane, WorkspaceTab } from "../../packages/workspace-layout"
+import { WorkspaceLayout } from "./components/workspace-layout"
+import { useWorkspaceLayout } from "./model/use-workspace-layout"
 
 type Session = {
   id: string
@@ -167,11 +170,9 @@ function Detail({ session, onOpenDocument }: { session: Session; onOpenDocument:
 
 export function App() {
   const workspace = useOutlinerWorkspace()
+  const layout = useWorkspaceLayout()
   const [localSelectedId, setLocalSelectedId] = useState(INITIAL_SESSIONS[0]!.id)
-  const [activeTab, setActiveTab] = useState<"detail" | "document">("document")
-  const [treeWidth, setTreeWidth] = useState(340)
   const [collapsedIds, setCollapsedIds] = useState<ReadonlySet<string>>(new Set())
-  const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
   const [filter, setFilter] = useState("")
   const [status, setStatus] = useState(".tmd picker mounted")
   const sessions = workspace.blocks.length > 0
@@ -183,6 +184,13 @@ export function App() {
     `${session.id} ${session.title} ${session.summary}`.toLowerCase().includes(filter.toLowerCase()),
   )
   const visible = filter ? matches : visibleTreeItems(matches, collapsedIds)
+
+  const activateKnownTab = (tabId: string) => {
+    const pane = Object.values(layout.state.panes).find((candidate) =>
+      candidate.tabs.some((tab) => tab.id === tabId),
+    )
+    if (pane) layout.dispatch({ action: "tab.activate", paneId: pane.id, tabId })
+  }
 
   const registry = useMemo<DocumentCapabilityRegistry>(() => ({
     version: "spike-1",
@@ -200,13 +208,79 @@ export function App() {
         setStatus(`Refreshing ${sessions.length} canonical blocks`)
       },
       "document.close": () => {
-        setActiveTab("detail")
+        activateKnownTab("detail")
         setStatus("Closed .tmd surface and returned to Detail")
       },
     },
-  }), [sessions, workspace.refresh, workspace.select])
+  }), [sessions, workspace.refresh, workspace.select, layout.state])
 
   const documentData = useMemo(() => ({ sessions, selected }), [sessions, selected])
+
+  const renderTab = (tab: WorkspaceTab, pane: WorkspacePane) => {
+    if (tab.kind === "outline") {
+      return (
+        <div
+          style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", padding: 10, backgroundColor: C.sidebar }}
+          tabIndex={0}
+          onKeyDown={(event) => {
+            const result = navigateTree(visible, selected.id, collapsedIds, event.key ?? "")
+            setCollapsedIds(result.collapsed)
+            if (result.selectedId && result.selectedId !== selected.id) {
+              setLocalSelectedId(result.selectedId)
+              void workspace.select(result.selectedId)
+            }
+            if (result.openDetail) activateKnownTab("detail")
+          }}
+        >
+          <text style={{ color: C.tertiary, fontFamily: FONT, fontSize: 11, marginBottom: 4 }}>
+            PHYSICAL TREE · {String(visible.length)}
+          </text>
+          <text style={{ color: C.tertiary, fontFamily: FONT, fontSize: 9, marginBottom: 8 }}>
+            ↑↓ move · ←→ collapse/enter · Space toggle · Enter detail
+          </text>
+          <virtual-list estimatedItemHeight={40} style={{ flexGrow: 1, minHeight: 0 }}>
+            {visible.map((session) => (
+              <div key={session.id}>
+                <TreeRow
+                  session={session}
+                  selected={session.id === selected.id}
+                  collapsed={collapsedIds.has(session.id)}
+                  onSelect={() => {
+                    setLocalSelectedId(session.id)
+                    void workspace.select(session.id)
+                  }}
+                />
+              </div>
+            ))}
+          </virtual-list>
+        </div>
+      )
+    }
+    if (tab.kind === "block-detail") {
+      return <Detail session={selected} onOpenDocument={() => activateKnownTab("document")} />
+    }
+    if (tab.kind === "tmd-document" && tab.target === "builtin:outliner-picker") {
+      return (
+        <DocumentSurface
+          source={pickerSource}
+          data={documentData}
+          registry={registry}
+          onClose={() => {
+            activateKnownTab("detail")
+            setStatus("Closed .tmd surface")
+          }}
+        />
+      )
+    }
+    return (
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <text style={{ color: C.secondary, fontFamily: FONT, fontSize: 13 }}>{tab.title}</text>
+        <text style={{ color: C.tertiary, fontFamily: FONT, fontSize: 10 }}>
+          {tab.target ?? `${tab.kind} · ${pane.id}`}
+        </text>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -259,144 +333,12 @@ export function App() {
         </text>
       </div>
 
-      <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "row" }}>
-        <div
-          style={{
-            width: treeWidth,
-            height: "100%",
-            flexShrink: 0,
-            display: "flex",
-            flexDirection: "column",
-            padding: 10,
-            backgroundColor: C.sidebar,
-          }}
-          tabIndex={0}
-          onKeyDown={(event) => {
-            const result = navigateTree(visible, selected.id, collapsedIds, event.key ?? "")
-            setCollapsedIds(result.collapsed)
-            if (result.selectedId && result.selectedId !== selected.id) {
-              setLocalSelectedId(result.selectedId)
-              void workspace.select(result.selectedId)
-            }
-            if (result.openDetail) setActiveTab("detail")
-          }}
-        >
-          <text style={{ color: C.tertiary, fontFamily: FONT, fontSize: 11, marginBottom: 4 }}>
-            PHYSICAL TREE · {String(visible.length)}
-          </text>
-          <text style={{ color: C.tertiary, fontFamily: FONT, fontSize: 9, marginBottom: 8 }}>
-            ↑↓ move · ←→ collapse/enter · Space toggle · Enter detail
-          </text>
-          <virtual-list estimatedItemHeight={40} style={{ flexGrow: 1, minHeight: 0 }}>
-            {visible.map((session) => (
-              <div key={session.id}>
-                <TreeRow
-                  session={session}
-                  selected={session.id === selected.id}
-                  collapsed={collapsedIds.has(session.id)}
-                  onSelect={() => {
-                    setLocalSelectedId(session.id)
-                    void workspace.select(session.id)
-                  }}
-                />
-              </div>
-            ))}
-          </virtual-list>
-        </div>
-
-        <div
-          testId="tree-divider"
-          onMouseDown={(event) => {
-            resizeRef.current = { startX: event.x ?? 0, startWidth: treeWidth }
-          }}
-          onMouseMove={(event) => {
-            const resize = resizeRef.current
-            if (!resize) return
-            setTreeWidth(Math.max(240, Math.min(620, resize.startWidth + (event.x ?? 0) - resize.startX)))
-          }}
-          onMouseUp={() => {
-            resizeRef.current = null
-          }}
-          style={{
-            width: 5,
-            height: "100%",
-            flexShrink: 0,
-            cursor: "col-resize",
-            backgroundColor: C.border,
-            hover: { backgroundColor: C.accent },
-            active: { backgroundColor: C.accent },
-          }}
+      <div style={{ flexGrow: 1, minHeight: 0 }}>
+        <WorkspaceLayout
+          state={layout.state}
+          dispatch={layout.dispatch}
+          renderTab={renderTab}
         />
-
-        <div
-          style={{
-            flexGrow: 1,
-            minWidth: 0,
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: C.canvas,
-          }}
-        >
-          <div
-            style={{
-              height: 38,
-              flexShrink: 0,
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "end",
-              paddingLeft: 8,
-              gap: 3,
-              borderBottomWidth: 1,
-              borderColor: C.border,
-              backgroundColor: C.sidebar,
-            }}
-          >
-            {([
-              ["detail", "Block Detail"],
-              ["document", ".tmd Picker"],
-            ] as const).map(([id, label]) => (
-              <div
-                key={id}
-                testId={`tab-${id}`}
-                onClick={() => setActiveTab(id)}
-                style={{
-                  height: 34,
-                  paddingLeft: 13,
-                  paddingRight: 13,
-                  display: "flex",
-                  alignItems: "center",
-                  borderTopLeftRadius: 7,
-                  borderTopRightRadius: 7,
-                  cursor: "pointer",
-                  backgroundColor: activeTab === id ? C.canvas : C.sidebar,
-                  borderBottomWidth: activeTab === id ? 2 : 0,
-                  borderColor: C.accent,
-                  hover: activeTab === id ? undefined : { backgroundColor: C.overlay },
-                }}
-              >
-                <text style={{ color: activeTab === id ? C.text : C.tertiary, fontFamily: FONT, fontSize: 12 }}>
-                  {label}
-                </text>
-              </div>
-            ))}
-          </div>
-          <div style={{ flexGrow: 1, minHeight: 0 }}>
-            {activeTab === "document" ? (
-              <DocumentSurface
-                source={pickerSource}
-                data={documentData}
-                registry={registry}
-                onClose={() => {
-                  setActiveTab("detail")
-                  setStatus("Closed .tmd surface")
-                }}
-              />
-            ) : (
-              <Detail session={selected} onOpenDocument={() => setActiveTab("document")} />
-            )}
-          </div>
-        </div>
       </div>
     </div>
   )

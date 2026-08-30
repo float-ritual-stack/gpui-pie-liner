@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --hot apps/desktop/app.tsx",
+    "pie": "bun run apps/cli.ts",
     "build": "bun build --compile apps/desktop/app.tsx --outfile dist/gpui-pie-liner",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
