@@ -1,15 +1,15 @@
-import { useSyncExternalStore } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 import {
   getWorkspaceRuntime,
   type WorkspaceLayoutCommand,
 } from "../../../packages/workspace-layout"
 
 const runtime = getWorkspaceRuntime()
-void runtime.starting.catch((error) => {
-  console.error(`[gpui-pie-liner] workspace control server failed: ${String(error)}`)
-})
-
 export function useWorkspaceLayout() {
+  useEffect(() => {
+    const timer = setInterval(() => runtime.store.refreshFromDisk(), 50)
+    return () => clearInterval(timer)
+  }, [])
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.getSnapshot,

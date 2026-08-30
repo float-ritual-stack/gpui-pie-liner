@@ -1,6 +1,6 @@
 # Agent workspace control
 
-Anything the visible workspace can do is represented as a serializable command. The native app exposes those commands over a local JSON-lines Unix socket; the CLI uses the same protocol and writes the persisted layout directly when the app is closed.
+Anything the visible workspace can do is represented as a serializable command. The CLI atomically applies commands to the canonical persisted layout, and a running native app observes the same state. Commands work identically while the app is closed.
 
 There is no approval layer. Invalid IDs and structurally invalid operations fail; valid local workspace operations execute immediately.
 
@@ -85,23 +85,10 @@ printf 'replacement canonical text' | bun run pie block update --id <uuid> --std
 
 ## Persistence and lifecycle
 
-Default paths:
-
-```text
-~/.local/state/gpui-pie-liner/workspace-layout.json
-~/.local/state/gpui-pie-liner/control.sock
-```
-
-Override both with:
+The default state is `~/.local/state/gpui-pie-liner/workspace-layout.json`. Override its directory with:
 
 ```sh
 GPUI_PIE_STATE_DIR=/path/to/state bun run dev
 ```
 
-Or override only the socket:
-
-```sh
-GPUI_PIE_CONTROL_SOCKET=/path/to/control.sock bun run dev
-```
-
-When the app is running, commands update the live React workspace through `useSyncExternalStore`. When it is closed, the CLI applies the same reducer to the persisted layout; the next launch opens that state.
+Commands are serialized with an interprocess lock, rebased on the latest snapshot, and atomically persisted. A running app checks for external changes every 50 ms and updates through `useSyncExternalStore`; the next launch opens the same state if the app is closed.

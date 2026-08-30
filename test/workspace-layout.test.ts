@@ -69,6 +69,38 @@ describe("workspace layout commands", () => {
     expect(state.panes.main?.tabs.some((tab) => tab.title === "Notes")).toBe(true)
   })
 
+  test("rejects duplicate split tabs and unknown socket actions", () => {
+    const state = initialWorkspaceLayout()
+    expect(() => applyWorkspaceCommand(state, {
+      action: "pane.split",
+      paneId: "main",
+      newPaneId: "agent",
+      direction: "down",
+      tab: { id: "outline", kind: "empty", title: "Duplicate" },
+    })).toThrow("Tab already exists")
+    expect(() => applyWorkspaceCommand(state, { action: "untrusted" } as never)).toThrow("Unknown workspace action")
+  })
+
+  test("normalizes the receiving pane after closing a pane", () => {
+    let state = applyWorkspaceCommand(initialWorkspaceLayout(), {
+      action: "pane.split",
+      paneId: "main",
+      newPaneId: "agent",
+      direction: "down",
+      tab: { id: "agent-tab", kind: "empty", title: "Agent" },
+    })
+    state = {
+      ...state,
+      panes: { ...state.panes, agent: { ...state.panes.agent!, activeTabId: null } },
+    }
+    state = applyWorkspaceCommand(state, {
+      action: "pane.close",
+      paneId: "agent",
+      moveTabsToPaneId: "main",
+    })
+    expect(state.panes.main?.activeTabId).toBe("detail")
+  })
+
   test("clamps resize ratios and rejects approval-theater-free commands only when invalid", () => {
     const state = applyWorkspaceCommand(initialWorkspaceLayout(), {
       action: "pane.resize",
