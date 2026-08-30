@@ -79,6 +79,7 @@ export type OutlinerRequestInput =
       author?: "user" | "agent" | "system"
       provenance?: { actorId: string; sessionId?: string; taskId?: string }
     }
+  | { action: "update"; blockId: string; text: string; expectedUpdatedAt?: string }
   | { action: "selection.set"; blockId: string | null }
   | {
       action: "events.subscribe"
