@@ -51,6 +51,12 @@ function option(name: string, required = false): string | undefined {
   return value && !value.startsWith("--") ? value : undefined
 }
 
+function rawOption(name: string): string | undefined {
+  const index = args.indexOf(`--${name}`)
+  if (index < 0 || index + 1 >= args.length) return undefined
+  return args[index + 1]
+}
+
 function has(name: string): boolean {
   return args.includes(`--${name}`)
 }
@@ -158,7 +164,8 @@ async function runBlockCommand(): Promise<unknown> {
   if (action === "select") return client.request({ action: "selection.set", blockId })
   if (action === "update") {
     const current = await client.request<VisibleBlock>({ action: "get", blockId })
-    const text = has("stdin") ? await Bun.stdin.text() : option("text", true)!
+    const text = has("stdin") ? await Bun.stdin.text() : rawOption("text")
+    if (text === undefined) throw new Error("Missing --text")
     return client.request({
       action: "update",
       blockId,

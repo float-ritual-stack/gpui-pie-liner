@@ -178,8 +178,11 @@ export function App() {
 
   const documentData = useMemo(() => ({ sessions, selected }), [sessions, selected])
   const detailEditor = detailEditors[selected.id] ?? initialDetailEditorState(selected)
-  const setDetailEditor = (editor: DetailEditorState) => {
-    setDetailEditors((current) => ({ ...current, [selected.id]: editor }))
+  const setDetailEditor = (update: (editor: DetailEditorState) => DetailEditorState) => {
+    setDetailEditors((current) => ({
+      ...current,
+      [selected.id]: update(current[selected.id] ?? initialDetailEditorState(selected)),
+    }))
   }
 
   const renderTab = (tab: WorkspaceTab, pane: WorkspacePane) => {

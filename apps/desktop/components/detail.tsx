@@ -36,11 +36,11 @@ export function Detail({
 }: {
   session: DetailSession
   editor: DetailEditorState
-  onEditorChange(editor: DetailEditorState): void
+  onEditorChange(update: (editor: DetailEditorState) => DetailEditorState): void
   onOpenDocument: () => void
   onSave(session: DetailSession, text: string, expectedUpdatedAt: string): Promise<void>
 }) {
-  const patch = (next: Partial<DetailEditorState>) => onEditorChange({ ...editor, ...next })
+  const patch = (next: Partial<DetailEditorState>) => onEditorChange((current) => ({ ...current, ...next }))
   const beginEdit = () => patch({
     mode: "edit",
     draft: session.rawText ?? "",
@@ -50,10 +50,13 @@ export function Detail({
   })
   const save = async () => {
     if (editor.saving) return
+    const savedDraft = editor.draft
     patch({ saving: true, error: null })
     try {
-      await onSave(session, editor.draft, editor.baseUpdatedAt)
-      patch({ mode: "preview", saving: false, error: null })
+      await onSave(session, savedDraft, editor.baseUpdatedAt)
+      onEditorChange((current) => current.draft === savedDraft
+        ? { ...current, mode: "preview", saving: false, error: null }
+        : { ...current, saving: false, error: null })
     } catch (cause) {
       patch({ saving: false, error: cause instanceof Error ? cause.message : String(cause) })
     }
