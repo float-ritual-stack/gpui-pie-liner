@@ -262,6 +262,8 @@ Responsibilities:
 
 Split subscriptions so `TreeSurface`, `DetailSurface`, and the filter bar do not all rerender when unrelated state changes.
 
+Workspace layout control uses persisted layout as its cross-process arbiter. CLI commands take an interprocess lock, rebase on the latest snapshot, and atomically persist; the native app observes external changes on a 50 ms cadence. This replaced an app-owned control socket after native GPUIX smoke testing showed connections opening while post-mount server data callbacks were not pumped reliably. Agent control therefore does not depend on the window process serving requests.
+
 ## GPUIX rendering plan
 
 ### App shell, tabs, and panels

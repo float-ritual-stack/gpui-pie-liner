@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 import {
-  sendWorkspaceCommand,
-  WorkspaceLayoutStore,
+  dispatchPersistedWorkspaceCommand,
   type SplitDirection,
   type WorkspaceLayoutCommand,
   type WorkspaceTabKind,
@@ -40,7 +39,7 @@ Usage:
 
 Tab kinds: outline, block-detail, tmd-document, empty
 
-Every command goes directly to the running app's local Unix socket. There is no approval layer.`)
+Commands atomically update the persisted layout; a running app observes the same canonical state. There is no approval layer.`)
   process.exit(0)
 }
 
@@ -182,16 +181,7 @@ try {
     process.exit(0)
   }
   const command = commandFromArgs()
-  let result
-  try {
-    result = await sendWorkspaceCommand(command)
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code
-    if (code !== "ENOENT" && code !== "ECONNREFUSED") throw error
-    const store = new WorkspaceLayoutStore()
-    result = store.dispatch(command)
-    console.error("[gpui-pie-liner] app offline; updated persisted workspace layout directly")
-  }
+  const result = dispatchPersistedWorkspaceCommand(command)
   console.log(JSON.stringify(result, null, 2))
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error))

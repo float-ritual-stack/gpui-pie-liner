@@ -83,9 +83,11 @@ describeNative("Detail optimistic editing", () => {
     await app.getByTestId("save-block").click()
     await app.getByTestId("detail-editor").fill("Newer draft")
     pending.resolve()
-    await vi.waitFor(() => {
-      expect(root.renderer.findByTestId("detail-editor")?.customProps?.value).toBe("Newer draft")
-    })
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (root.renderer.findByTestId("detail-editor")?.customProps?.value === "Newer draft") break
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+    expect(root.renderer.findByTestId("detail-editor")?.customProps?.value).toBe("Newer draft")
   })
 
   test("preserves a newer draft when a pending save rejects", async () => {

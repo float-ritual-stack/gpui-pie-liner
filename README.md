@@ -43,7 +43,7 @@ bun run pie pane split --pane main --direction down --id research --kind empty -
 bun run pie pane resize --split split-root --ratio 0.4
 ```
 
-Commands update the live app over its local socket, or update persisted layout directly while the app is closed. Block reads, selection, and optimistic updates are exposed through the same CLI:
+Layout commands atomically update canonical persisted state; a running app observes changes within 50 ms, and a closed app opens the same state on its next launch. Block reads, selection, and optimistic updates are exposed through the same CLI:
 
 ```sh
 bun run pie block get --id <uuid>

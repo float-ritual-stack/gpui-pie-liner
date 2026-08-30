@@ -239,9 +239,14 @@ export function applyWorkspaceCommand(
     requirePane(state, command.paneId)
     const newPaneId = command.newPaneId ?? uniqueId("pane", (id) => Boolean(state.panes[id]))
     if (state.panes[newPaneId]) throw new Error(`Pane already exists: ${newPaneId}`)
+    const fallbackTabId = command.tab ? `${newPaneId}-tab` : `${newPaneId}-empty`
+    const tabId = command.tab?.id ?? fallbackTabId
+    if (Object.values(state.panes).some((candidate) => candidate.tabs.some((tab) => tab.id === tabId))) {
+      throw new Error(`Tab already exists: ${tabId}`)
+    }
     const tab = command.tab
-      ? { ...command.tab, id: command.tab.id ?? `${newPaneId}-tab` }
-      : { id: `${newPaneId}-empty`, kind: "empty" as const, title: "Empty" }
+      ? { ...command.tab, id: tabId }
+      : { id: tabId, kind: "empty" as const, title: "Empty" }
     const splitId = uniqueId("split", (id) => {
       let exists = false
       mapNode(state.root, (node) => {
@@ -292,7 +297,11 @@ export function applyWorkspaceCommand(
       if (!command.moveTabsToPaneId) throw new Error("Pane contains tabs; provide moveTabsToPaneId")
       const target = panes[command.moveTabsToPaneId]
       if (!target) throw new Error(`Target pane not found: ${command.moveTabsToPaneId}`)
-      panes[target.id] = { ...target, tabs: [...target.tabs, ...closing.tabs], activeTabId: closing.activeTabId }
+      panes[target.id] = normalizePane({
+        ...target,
+        tabs: [...target.tabs, ...closing.tabs],
+        activeTabId: closing.activeTabId,
+      })
     }
     return { ...state, root: removed.node, panes }
   }
@@ -320,5 +329,5 @@ export function applyWorkspaceCommand(
     return { ...state, root }
   }
 
-  return state
+  throw new Error(`Unknown workspace action: ${(command as { action?: unknown }).action ?? "(missing)"}`)
 }

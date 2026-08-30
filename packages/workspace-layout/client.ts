@@ -28,15 +28,23 @@ export function sendWorkspaceCommand(
     clearTimeout(timeout)
     result.reject(error)
   })
+  socket.once("close", () => {
+    clearTimeout(timeout)
+    result.reject(new Error("Workspace control socket closed before replying"))
+  })
   socket.on("data", (chunk: string) => {
     buffer += chunk
     const newline = buffer.indexOf("\n")
     if (newline < 0) return
     clearTimeout(timeout)
     socket.end()
-    const response = JSON.parse(buffer.slice(0, newline)) as ControlResponse
-    if (!response.ok || !response.result) result.reject(new Error(response.error ?? "Workspace command failed"))
-    else result.resolve(response.result)
+    try {
+      const response = JSON.parse(buffer.slice(0, newline)) as ControlResponse
+      if (!response.ok || !response.result) result.reject(new Error(response.error ?? "Workspace command failed"))
+      else result.resolve(response.result)
+    } catch (error) {
+      result.reject(new Error(`Invalid workspace control response: ${error instanceof Error ? error.message : String(error)}`))
+    }
   })
   return result.promise
 }
