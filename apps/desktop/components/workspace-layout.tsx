@@ -344,6 +344,29 @@ export function WorkspaceLayout(props: WorkspaceLayoutProps) {
         moveDrag={moveDrag}
         endDrag={endDrag}
       />
+      {drag?.active ? (
+        <div
+          testId="workspace-drag-ghost"
+          style={{
+            position: "absolute",
+            left: drag.currentX + 12,
+            top: drag.currentY - workspace.y + 12,
+            maxWidth: 220,
+            padding: 8,
+            paddingLeft: 11,
+            paddingRight: 11,
+            borderWidth: 1,
+            borderColor: C.accent,
+            borderRadius: 7,
+            backgroundColor: C.raised,
+            pointerEvents: "none",
+          }}
+        >
+          <text style={{ color: C.text, fontFamily: FONT, fontSize: 12 }}>
+            {drag.sourcePaneIsSingleTab ? `Pane · ${drag.tab.title}` : drag.tab.title}
+          </text>
+        </div>
+      ) : null}
       {preview ? (
         <div
           testId="workspace-drop-preview"

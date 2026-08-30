@@ -75,10 +75,12 @@ describeNative("workspace surface", () => {
     await app.mouse.down(source)
     await app.mouse.move(target, { pressedButton: 0 })
     await app.getByTestId("workspace-drop-preview").waitFor()
+    await app.getByTestId("workspace-drag-ghost").waitFor()
     await app.mouse.up(target)
     await new Promise((resolve) => setTimeout(resolve, 20))
 
     expect(root.renderer.findByTestId("workspace-drop-preview")).toBeUndefined()
+    expect(root.renderer.findByTestId("workspace-drag-ghost")).toBeUndefined()
   })
 
   test("drops a tab onto a pane quadrant to create a new split", async () => {
