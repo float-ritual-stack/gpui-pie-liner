@@ -268,6 +268,8 @@ Workspace layout control uses persisted layout as its cross-process arbiter. CLI
 
 ### App shell, tabs, and panels
 
+The interaction target is the full Replit-style fluid splits model, specified in [`FLUID_SPLITS.md`](FLUID_SPLITS.md). A serialized tree without direct pane physics is not sufficient. Same-axis binary nesting is an interim representation and must normalize into weighted multi-node splits before maximize, float, and layout history land.
+
 Removing Herdr removes **process/pane orchestration**, not tabs, panels, splits, or workspaces. Those become application-owned layout rather than terminal-multiplexer-owned layout.
 
 The initial shell has:

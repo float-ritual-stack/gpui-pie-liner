@@ -317,6 +317,7 @@ export function App() {
         <WorkspaceLayout
           state={layout.state}
           dispatch={layout.dispatch}
+          windowOffsetY={50}
           renderTab={renderTab}
         />
       </div>
