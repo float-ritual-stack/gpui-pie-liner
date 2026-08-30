@@ -17,9 +17,22 @@ export interface OutlinerWorkspaceModel {
   error: string | null
   refresh(): Promise<void>
   select(blockId: string): Promise<void>
+  update(blockId: string, text: string, expectedUpdatedAt: string): Promise<void>
 }
 
 const EMPTY_COMPLETENESS: BlockCollectionCompleteness = { kind: "complete" }
+
+type OutlinerRequester = Pick<OutlinerClient, "request">
+
+export async function updateBlockAndSnapshot(
+  client: OutlinerRequester,
+  blockId: string,
+  text: string,
+  expectedUpdatedAt: string,
+): Promise<WorkspaceSnapshot> {
+  await client.request({ action: "update", blockId, text, expectedUpdatedAt })
+  return client.request<WorkspaceSnapshot>({ action: "workspace.snapshot" })
+}
 
 export function useOutlinerWorkspace(): OutlinerWorkspaceModel {
   const [blocks, setBlocks] = useState<readonly VisibleBlock[]>([])
@@ -66,6 +79,20 @@ export function useOutlinerWorkspace(): OutlinerWorkspaceModel {
       await refresh()
     }
   }, [refresh])
+
+  const update = useCallback(async (blockId: string, text: string, expectedUpdatedAt: string) => {
+    const client = clientRef.current
+    if (!client) throw new Error("Outliner service is not connected")
+    const generation = ++generationRef.current
+    const snapshot = await updateBlockAndSnapshot(client, blockId, text, expectedUpdatedAt)
+    if (!mountedRef.current || generation !== generationRef.current) return
+    setBlocks(snapshot.physical.blocks)
+    setCompleteness(snapshot.physical.completeness)
+    setSelectedId(snapshot.selection.selected?.id ?? snapshot.physical.blocks[0]?.id ?? null)
+    setSequence(snapshot.sequence)
+    setConnection("ready")
+    setError(null)
+  }, [])
 
   useEffect(() => {
     mountedRef.current = true
@@ -118,5 +145,6 @@ export function useOutlinerWorkspace(): OutlinerWorkspaceModel {
     error,
     refresh,
     select,
+    update,
   }
 }

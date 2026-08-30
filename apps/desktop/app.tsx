@@ -8,6 +8,7 @@ import { useOutlinerWorkspace } from "./model/use-outliner-workspace"
 import { navigateTree, visibleTreeItems } from "./model/tree-navigation"
 import type { VisibleBlock } from "../../packages/outliner"
 import type { WorkspacePane, WorkspaceTab } from "../../packages/workspace-layout"
+import { Detail, initialDetailEditorState, type DetailEditorState } from "./components/detail"
 import { WorkspaceLayout } from "./components/workspace-layout"
 import { useWorkspaceLayout } from "./model/use-workspace-layout"
 
@@ -20,6 +21,7 @@ type Session = {
   children?: boolean
   rawText?: string
   workId?: string
+  updatedAt: string
 }
 
 function blockTitle(block: VisibleBlock): string {
@@ -45,6 +47,7 @@ function blockToSession(block: VisibleBlock): Session {
     children: block.hasChildren,
     rawText: block.text,
     workId: block.properties.find((property) => property.key === "work-id")?.value,
+    updatedAt: block.updatedAt,
   }
 }
 
@@ -56,6 +59,7 @@ const INITIAL_SESSIONS: Session[] = [
     depth: 0,
     parentId: null,
     children: true,
+    updatedAt: "fixture",
   },
   {
     id: "PIE-152",
@@ -63,6 +67,7 @@ const INITIAL_SESSIONS: Session[] = [
     summary: "Turn deterministic PREFIX-XXX markers into agent-assisted durable work.",
     depth: 1,
     parentId: "PIE-146",
+    updatedAt: "fixture",
   },
   {
     id: "PIE-156",
@@ -70,6 +75,7 @@ const INITIAL_SESSIONS: Session[] = [
     summary: "Address exact Tree and Detail clients without guessing pane ownership.",
     depth: 1,
     parentId: "PIE-146",
+    updatedAt: "fixture",
   },
   {
     id: "PIE-160",
@@ -77,6 +83,7 @@ const INITIAL_SESSIONS: Session[] = [
     summary: "Interpret safe .tmd documents as validated native GPUIX component trees.",
     depth: 0,
     parentId: null,
+    updatedAt: "fixture",
   },
 ]
 
@@ -122,57 +129,12 @@ function TreeRow({
   )
 }
 
-function Detail({ session, onOpenDocument }: { session: Session; onOpenDocument: () => void }) {
-  return (
-    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-      <div
-        style={{
-          height: 52,
-          flexShrink: 0,
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          paddingLeft: 18,
-          paddingRight: 14,
-          borderBottomWidth: 1,
-          borderColor: C.border,
-        }}
-      >
-        <div style={{ flexGrow: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-          <text style={{ color: C.text, fontFamily: FONT, fontSize: 14 }}>Detail</text>
-          <text style={{ color: C.tertiary, fontFamily: FONT, fontSize: 10 }}>{session.id}</text>
-        </div>
-        <div
-          testId="open-tmd"
-          onClick={onOpenDocument}
-          style={{
-            padding: 9,
-            paddingLeft: 12,
-            paddingRight: 12,
-            borderRadius: 7,
-            backgroundColor: C.accent,
-            cursor: "pointer",
-            hover: { backgroundColor: "#EC8767" },
-          }}
-        >
-          <text style={{ color: "#171717", fontFamily: FONT, fontSize: 12 }}>Open .tmd picker</text>
-        </div>
-      </div>
-      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "scroll", padding: 24 }}>
-        <markdown
-          source={session.rawText ?? `# ${session.title}\n\n${session.summary}\n\n\`\`\`text\n[work-id::${session.id}]\n\`\`\``}
-          style={{ color: C.text, fontFamily: FONT, fontSize: 14 }}
-        />
-      </div>
-    </div>
-  )
-}
-
 export function App() {
   const workspace = useOutlinerWorkspace()
   const layout = useWorkspaceLayout()
   const [localSelectedId, setLocalSelectedId] = useState(INITIAL_SESSIONS[0]!.id)
   const [collapsedIds, setCollapsedIds] = useState<ReadonlySet<string>>(new Set())
+  const [detailEditors, setDetailEditors] = useState<Record<string, DetailEditorState>>({})
   const [filter, setFilter] = useState("")
   const [status, setStatus] = useState(".tmd picker mounted")
   const sessions = workspace.blocks.length > 0
@@ -215,6 +177,13 @@ export function App() {
   }), [sessions, workspace.refresh, workspace.select, layout.state])
 
   const documentData = useMemo(() => ({ sessions, selected }), [sessions, selected])
+  const detailEditor = detailEditors[selected.id] ?? initialDetailEditorState(selected)
+  const setDetailEditor = (update: (editor: DetailEditorState) => DetailEditorState) => {
+    setDetailEditors((current) => ({
+      ...current,
+      [selected.id]: update(current[selected.id] ?? initialDetailEditorState(selected)),
+    }))
+  }
 
   const renderTab = (tab: WorkspaceTab, pane: WorkspacePane) => {
     if (tab.kind === "outline") {
@@ -257,7 +226,18 @@ export function App() {
       )
     }
     if (tab.kind === "block-detail") {
-      return <Detail session={selected} onOpenDocument={() => activateKnownTab("document")} />
+      return (
+        <Detail
+          session={selected}
+          editor={detailEditor}
+          onEditorChange={setDetailEditor}
+          onOpenDocument={() => activateKnownTab("document")}
+          onSave={async (session, text, expectedUpdatedAt) => {
+            await workspace.update(session.id, text, expectedUpdatedAt)
+            setStatus(`Saved ${session.workId ?? session.id.slice(0, 8)}`)
+          }}
+        />
+      )
     }
     if (tab.kind === "tmd-document" && tab.target === "builtin:outliner-picker") {
       return (
