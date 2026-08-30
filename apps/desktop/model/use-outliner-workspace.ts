@@ -17,6 +17,7 @@ export interface OutlinerWorkspaceModel {
   error: string | null
   refresh(): Promise<void>
   select(blockId: string): Promise<void>
+  update(blockId: string, text: string, expectedUpdatedAt: string): Promise<void>
 }
 
 const EMPTY_COMPLETENESS: BlockCollectionCompleteness = { kind: "complete" }
@@ -65,6 +66,13 @@ export function useOutlinerWorkspace(): OutlinerWorkspaceModel {
       setError(cause instanceof Error ? cause.message : String(cause))
       await refresh()
     }
+  }, [refresh])
+
+  const update = useCallback(async (blockId: string, text: string, expectedUpdatedAt: string) => {
+    const client = clientRef.current
+    if (!client) throw new Error("Outliner service is not connected")
+    await client.request({ action: "update", blockId, text, expectedUpdatedAt })
+    await refresh()
   }, [refresh])
 
   useEffect(() => {
@@ -118,5 +126,6 @@ export function useOutlinerWorkspace(): OutlinerWorkspaceModel {
     error,
     refresh,
     select,
+    update,
   }
 }

@@ -6,6 +6,12 @@ import {
   type WorkspaceLayoutCommand,
   type WorkspaceTabKind,
 } from "../packages/workspace-layout"
+import {
+  OutlinerClient,
+  resolveOutlinerTarget,
+  type VisibleBlock,
+  type WorkspaceSnapshot,
+} from "../packages/outliner"
 
 const args = process.argv.slice(2)
 
@@ -26,6 +32,11 @@ Usage:
   bun run pie pane move --pane <id> --target-pane <id> --direction <left|right|up|down>
   bun run pie pane close --pane <id> [--move-tabs-to <id>]
   bun run pie pane resize --split <id> --ratio <0.1..0.9>
+
+  bun run pie block list
+  bun run pie block get --id <uuid>
+  bun run pie block select --id <uuid>
+  bun run pie block update --id <uuid> (--text <text> | --stdin) [--expected <updatedAt>]
 
 Tab kinds: outline, block-detail, tmd-document, empty
 
@@ -138,7 +149,31 @@ function commandFromArgs(): WorkspaceLayoutCommand {
   throw new Error(`Unknown command: ${args.join(" ")}`)
 }
 
+async function runBlockCommand(): Promise<unknown> {
+  const action = args[1]
+  const client = new OutlinerClient(resolveOutlinerTarget().socketPath)
+  if (action === "list") return client.request<WorkspaceSnapshot>({ action: "workspace.snapshot" })
+  const blockId = option("id", true)!
+  if (action === "get") return client.request<VisibleBlock>({ action: "get", blockId })
+  if (action === "select") return client.request({ action: "selection.set", blockId })
+  if (action === "update") {
+    const current = await client.request<VisibleBlock>({ action: "get", blockId })
+    const text = has("stdin") ? await Bun.stdin.text() : option("text", true)!
+    return client.request({
+      action: "update",
+      blockId,
+      text,
+      expectedUpdatedAt: option("expected") ?? current.updatedAt,
+    })
+  }
+  throw new Error(`Unknown block command: ${action ?? "(missing)"}`)
+}
+
 try {
+  if (args[0] === "block") {
+    console.log(JSON.stringify(await runBlockCommand(), null, 2))
+    process.exit(0)
+  }
   const command = commandFromArgs()
   let result
   try {

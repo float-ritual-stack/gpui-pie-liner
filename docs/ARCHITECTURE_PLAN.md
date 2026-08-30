@@ -328,6 +328,8 @@ Canonical identity is **contextual chrome**, not a permanent subtitle. Tree rows
 
 ### Detail
 
+> **Initial optimistic editor shipped 2026-08-30:** raw canonical textarea, captured `updatedAt`, `⌘S`/`Ctrl+S`, preserved conflict drafts, externally retained per-block editor state across tab unmounts, and matching agent CLI updates.
+
 Use sibling panes, each with its own top-level scrolling surface; GPUIX's restriction is nested scrolling, not separate sibling scrollers.
 
 - preview: native `<markdown>` inside one Detail scroll parent;

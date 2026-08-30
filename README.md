@@ -16,7 +16,7 @@ The current vertical slice renders:
 - keyboard-first Tree navigation and collapse behavior;
 - contextual identity chrome: titles/Work IDs in Tree, full UUID in Detail;
 - a fixture fallback when no service is available;
-- a native Markdown Detail surface;
+- a native Markdown Detail surface with optimistic raw-text editing, `⌘S`/`Ctrl+S`, conflict preservation, and drafts retained across tab switches;
 - an interpreted `.tmd` picker using Markdown, `::select`, `:::box`, bindings, and named key actions;
 - safe validation before mount and static receipt generation.
 
@@ -43,7 +43,14 @@ bun run pie pane split --pane main --direction down --id research --kind empty -
 bun run pie pane resize --split split-root --ratio 0.4
 ```
 
-Commands update the live app over its local socket, or update persisted layout directly while the app is closed. See [`docs/AGENT_CONTROL.md`](docs/AGENT_CONTROL.md).
+Commands update the live app over its local socket, or update persisted layout directly while the app is closed. Block reads, selection, and optimistic updates are exposed through the same CLI:
+
+```sh
+bun run pie block get --id <uuid>
+printf 'replacement text' | bun run pie block update --id <uuid> --stdin
+```
+
+See [`docs/AGENT_CONTROL.md`](docs/AGENT_CONTROL.md).
 
 ## Verify
 

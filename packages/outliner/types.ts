@@ -64,6 +64,7 @@ export interface OutlinerEventEnvelope {
 export type OutlinerRequestInput =
   | { action: "ping" }
   | { action: "workspace.snapshot" }
+  | { action: "get"; blockId: string }
   | {
       action: "blocks.query"
       query: {

@@ -70,6 +70,19 @@ New protocol commands do not require a matching CLI wrapper before agents can us
 bun run pie layout send '{"action":"pane.resize","splitId":"split-root","ratio":0.35}'
 ```
 
+## Canonical block editing
+
+The visible Detail editor and agents both use the outliner service's optimistic `update` action:
+
+```sh
+bun run pie block list
+bun run pie block get --id <uuid>
+bun run pie block select --id <uuid>
+printf 'replacement canonical text' | bun run pie block update --id <uuid> --stdin
+```
+
+`block update` reads the current `updatedAt` and submits it as `expectedUpdatedAt`. Pass `--expected <timestamp>` when the caller already holds a version and wants a real stale-write check. Conflicts fail without replacing the local draft.
+
 ## Persistence and lifecycle
 
 Default paths:
