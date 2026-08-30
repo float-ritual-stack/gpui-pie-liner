@@ -18,7 +18,8 @@ The current vertical slice renders:
 - a fixture fallback when no service is available;
 - a native Markdown Detail surface with optimistic raw-text editing, `⌘S`/`Ctrl+S`, conflict preservation, and drafts retained across tab switches;
 - an interpreted `.tmd` picker using Markdown, `::select`, `:::box`, bindings, and named key actions;
-- safe validation before mount and static receipt generation.
+- safe validation before mount and static receipt generation;
+- fluid split manipulation with conical drop targets, tab/header merges, tab-to-pane splitting, last-tab pane dragging, and explicit previews.
 
 ## Service discovery
 
@@ -50,7 +51,7 @@ bun run pie block get --id <uuid>
 printf 'replacement text' | bun run pie block update --id <uuid> --stdin
 ```
 
-See [`docs/AGENT_CONTROL.md`](docs/AGENT_CONTROL.md).
+See [`docs/AGENT_CONTROL.md`](docs/AGENT_CONTROL.md) and the full [`docs/FLUID_SPLITS.md`](docs/FLUID_SPLITS.md) interaction contract.
 
 ## Verify
 
